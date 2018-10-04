@@ -1,1 +1,0 @@
-ghc -O Main.hs
