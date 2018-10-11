@@ -1,40 +1,30 @@
 module Tokenizer where
 
-data Token = TDigit Integer
-           | TIdent Char
-           | TOp Operator
-           | TLParen
-           | TRParen
-           | TAssign
-           | TEof
-           deriving (Show, Eq)
-
 data Operator = Plus
               | Minus
               | Mult
               | Div
+              | Pow
+              | Break
+              | Comma
+              | ConcatOp
               deriving (Show, Eq)
 
-tokenize :: String -> [Token]
-tokenize [] = [TEof]
-tokenize (c : cs) | isOperator c   = TOp (operator c) : tokenize cs
-                  | isDigit c      = TDigit (digit c) : tokenize cs
-                  | isAlpha c      = TIdent (alpha c) : tokenize cs
-                  | c == '('       = TLParen : tokenize cs
-                  | c == ')'       = TRParen : tokenize cs
-                  | c == '='       = TAssign : tokenize cs
-                  | isWhiteSpace c = tokenize cs
-                  | otherwise = error ("Lexical error: unacceptable character " ++ [c])
-
 isOperator :: Char -> Bool
-isOperator x = x `elem` "+-*/"
+isOperator x = x `elem` "+-*/^"
 
-operator :: Char -> Operator
-operator c | c == '+' = Plus
-           | c == '-' = Minus
-           | c == '*' = Mult
-           | c == '/' = Div
-operator c = error ("Lexical error: " ++ c : " is not an operator!")
+--Had to change it into String so we could support "++" as an operator 
+
+operator :: String -> Operator
+operator c | c == "++" = ConcatOp
+           | c == ['+'] = Plus
+           | c == ['-'] = Minus
+           | c == ['*'] = Mult
+           | c == ['/'] = Div
+           | c == ['^'] = Pow
+           | c == [';'] = Break
+           | c == [','] = Comma
+operator c = error ("Lexical error: " ++ c ++ " is not an operator!")
 
 isDigit :: Char -> Bool
 isDigit x = x `elem` "0123456789"
