@@ -4,17 +4,27 @@ data Operator = Plus
               | Minus
               | Mult
               | Div
+              | Pow
+              | Break
+              | Comma
+              | ConcatOp
               deriving (Show, Eq)
 
 isOperator :: Char -> Bool
-isOperator x = x `elem` "+-*/"
+isOperator x = x `elem` "+-*/^"
 
-operator :: Char -> Operator
-operator c | c == '+' = Plus
-           | c == '-' = Minus
-           | c == '*' = Mult
-           | c == '/' = Div
-operator c = error ("Lexical error: " ++ c : " is not an operator!")
+--Had to change it into String so we could support "++" as an operator 
+
+operator :: String -> Operator
+operator c | c == "++" = ConcatOp
+           | c == ['+'] = Plus
+           | c == ['-'] = Minus
+           | c == ['*'] = Mult
+           | c == ['/'] = Div
+           | c == ['^'] = Pow
+           | c == [';'] = Break
+           | c == [','] = Comma
+operator c = error ("Lexical error: " ++ c ++ " is not an operator!")
 
 isDigit :: Char -> Bool
 isDigit x = x `elem` "0123456789"
