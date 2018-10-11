@@ -29,4 +29,5 @@ main = do
   putStrLn "\n\nОтсюда идут изменения деревьев на правильную ассоциативность\n\n"
   runParserWithRightAssociativity "a - b - c"
   runParserWithRightAssociativity "a - (b - c)"
-  runParserWithRightAssociativity "1 * 2 * 3 * (4 / 5 / 6 / (7  / 8))"
+  runParserWithRightAssociativity "1 * 2 * 3 * (4 / 5 / 6 / (7  / 8 * 9))"
+  runParserWithRightAssociativity "1 - 2 + 3 + (4 - 5 + 6 - (7 + 8 + 9))"
