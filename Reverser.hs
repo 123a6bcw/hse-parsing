@@ -13,7 +13,7 @@ astProdToList  t = case t of
         (op : oper, (changeAssociativity l) : ast) where
           (oper, ast) = astProdToList r
     _ ->
-        ([], [t])
+        ([], [changeAssociativity t])
 
 
 --данная функция совершает обратную операцию --- по данному списку ссылок на вершины АСТ и операций (деления или умножения), которым они были связаны, восстанавливает АСТ.
@@ -57,5 +57,7 @@ changeAssociativity t = case t of
                     ANum i
                 AIdent s ->
                     AIdent s
+                AParen s ->
+                    AParen (changeAssociativity s)
                 
              

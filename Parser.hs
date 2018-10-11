@@ -10,6 +10,7 @@ data AST = ASum Operator AST AST
          | ANum Integer
          | AIdent String
          | AunaryMinus Operator AST
+         | AParen AST
 
 parse :: String -> Maybe AST
 parse input =
@@ -77,7 +78,7 @@ factor ts =
     TLParen ->
       let (exprNode, ts') = expression True (accept ts) in
       case lookup ts' of
-        TRParen -> (exprNode, accept ts')
+        TRParen -> (AParen exprNode, accept ts')
         _ -> error "Syntax error: mismatched parentheses"
     TIdent v -> (AIdent v, accept ts)
     TNumber d -> (ANum d, accept ts)
@@ -101,7 +102,8 @@ instance Show AST where
                   AAssign  v e     -> show v ++ " =\n" ++ show' (ident n) e
                   ANum   i         -> show i
                   AIdent i         -> show i
-                  AunaryMinus op t -> showOp op : "\n" ++ show' (ident n) t)
+                  AunaryMinus op t -> showOp op : "\n" ++ show' (ident n) t
+                  AParen t    -> "(" ++ "\n" ++ show' (ident n) t ++ "\n" ++ ((if n > 0 then \s -> concat (replicate (n - 1) "| ") ++ "|_" ++ s else id) (")")) )
       ident = (+1)
       showOp Plus  = '+'
       showOp Minus = '-'
