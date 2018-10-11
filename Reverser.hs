@@ -29,7 +29,7 @@ astSumToList  t = case t of
         (op : oper, (changeAssociativity l) : ast) where
           (oper, ast) = astSumToList r
     _ ->
-        ([], [t])
+        ([], [changeAssociativity t])
 
 listToAstSum :: ([Operator], [AST]) -> AST 
 listToAstSum ([], y:[]) = y
