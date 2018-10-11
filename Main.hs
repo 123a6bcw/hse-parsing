@@ -18,20 +18,8 @@ instance {-# OVERLAPPING #-} Show a => Show (Maybe (Result a)) where
 
 main :: IO ()
 main = do
-  runParser "1   - 22-   3"
-  runParser "( ( (94   ) ) )  "
-  runParser "1  *   24  -    3  /   4 \n \n \n + 5"
-  runParser "21   +   2"
-  runParser "var = 13 * 42"
-  runParser "557*f^my^648*life^33"
-  runParser "-kill*(-me + (-please))"
-  runParser "-2+5-3;15"
-  runParser "x = 13; \ny = z = 42 + 6;\n 777"
-  putStrLn "here should be parse error"
-  runParser "x = -y = -13"
-  
-  runParser "-5+2+3"
-  runParser "-5^(-4 + 6 * (-5) * (-2 ^ 3))"
-  runParser "a = [] ;\n [b = 13, [z], 42 + 6] ++ a ++ [31, 25];\n777"
-  runParser "[a++[b], c]"
-  runParser "[[], [], a ++ [] ++ [1,[[[]]]]]"
+  runParser "1-2-3"
+  runParser "(((9)))"
+  runParser "1*2-3/4+5"
+  runParser "!"
+  runParser "1 + 2"

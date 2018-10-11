@@ -6,168 +6,66 @@ import Prelude hiding (lookup, (>>=), map, pred, return, elem)
 
 data AST = ASum T.Operator AST AST
          | AProd T.Operator AST AST
-         | AAssign String AST
+         | AAssign Char AST
          | ANum Integer
-         | AIdent String
-         | AUnaryMinus T.Operator AST
-         | APow T.Operator AST AST
-         | ABreak AST AST -- ;
-         | AConcat AST AST -- ++
-         | AList AST -- [AST]
-         | AEmptyList -- []
-         | AComma AST AST -- a, b (inside [])
+         | AIdent Char
 
 -- TODO: Rewrite this without using Success and Error
--- NOT DONE! :(
 parse :: String -> Maybe (Result AST)
 parse input =
   case input of
     [] -> Nothing
-    _ -> case expressionWithBreak input of
+    _ -> case expression input of
            Success (tree, ts') ->
              if null ts'
              then Just (Success tree)
              else Just (Error ("Syntax error on: " ++ show ts')) -- Only a prefix of the input is parsed
            Error err -> Just (Error err) -- Legitimate syntax error
 
-{-
-I realised ; as an operator with the lowest priority. 
-expression with break - either severalLists or several severalLists separated by operator ';'
--}
-expressionWithBreak :: Parser AST
-expressionWithBreak =
-    (
-        (severalLists) >>= \l ->
-        breakOp >>= \op ->
-        (expressionWithBreak) >>= \r -> return (ABreak l r)
-    ) 
-    <|> severalLists
-
-{-
-++ - operator with the higher proirity
-severalLists --- either a line of assigments to severalLists, concat of several listAround, just listAround or just an expression
--}
-
-severalLists :: Parser AST
-severalLists =
+expression :: Parser AST
+expression =
   ( identifier >>= \(AIdent i) ->
-      assignment |>
-        severalLists >>= \e -> return (AAssign i e)
-  ) <|>
-  ( listAround >>= \l ->
-      concatOp >>= \c ->
-         severalLists >>= \r -> return (AConcat l r)
-  )
-  <|> (listAround >>= \t -> return t )
-  <|> (expression True)
-
-{-
-Either Empty List (special case in my realisation), identifier or listExpression inside square brackets (that is impotant, because it's the thing that guarantee we won't go into 
-                                                                                                         endless recursion)
--}
-
-listAround :: Parser AST
-listAround =
-  (lsparen >>= \l1 ->
-      rsparen >>= \r1 -> return AEmptyList
-  )
-  <|> (identifier >>= \(AIdent i) -> return (AIdent i))
-  <|>
-  ( lsparen >>= \l1 ->
-      listExpression >>= \t ->
-        rsparen >>= \r1 -> return (AList t)
-  )
-
-{-
-Either severalLists (no endless recursion since we chopped square brackets) or severalLists connected with Comma. That alows us expressions like [[a]++[b], c]
--}
-
-listExpression :: Parser AST
-listExpression = 
-    ( severalLists >>= \l ->
-         comma >>= \c ->
-           listExpression >>= \r -> return (AComma l r)
-    ) <|> (severalLists)
-    
-{-
-  At some point, when we will run out of squareBrackest, severalLists will be just (Expression True), so here goes expression
--}
-  
-{-
-Unary minus can only be applied to the first factor (!) in the rightest part of assigment or in parenthed expression
-I choosed that way because -(5^2) != (-5) ^ 2, I decided that -5^2 = (-5) ^ 2 != -(5^2) 
-
-Mostly the same as my previous homework. Bool in expression means expression can start with unary minus (except for the left part of the assigment), same for highTerm, Term and Factor
-highTerm is terms connected with */, term --- factors connected with ^
-I choosed to use Bool variable so we will no allow expressions like 5 + -2, we allow unary minus only in the begining of the initial expression, in the rightmost part of assigments or
-in the begining of parenthed expression
--}
-
-expression :: Bool ->  Parser AST
-expression t =
-    ( identifier >>= \(AIdent i) ->
     assignment |>
-    (expression t) >>= \e -> return (AAssign i e)
-    )
-    <|>
-    ( (highTerm t)       >>= \l  -> -- Here the identifier is parsed twice :(. Whatever does it mean.
-            plusMinus  >>= \op ->
-            (expression False) >>= \r  -> return (ASum op l r)
-    )
-    <|> highTerm t
+    expression >>= \e -> return (AAssign i e)
+  )
+  <|> ( term       >>= \l  -> -- Here the identifier is parsed twice :(
+        plusMinus  >>= \op ->
+        expression >>= \r  -> return (ASum op l r)
+      )
+  <|> term
 
-highTerm :: Bool -> Parser AST
-highTerm t =
-   (term t) >>= \l ->
+term :: Parser AST
+term =
+  -- make sure we don't reparse the factor (Term -> Factor (('/' | '*') Term | epsilon ))
+  factor >>= \l ->
   ( ( divMult >>= \op ->
-      (highTerm False)    >>= \r  -> return (AProd op l r)
+      term    >>= \r  -> return (AProd op l r)
     )
     <|> return l
   )
 
-term :: Bool -> Parser AST
-term t =
-    (factor t) >>= \l ->
-      ( ( pw >>= \op ->
-          (term False)    >>= \r  -> return (APow op l r)
-        )
-        <|> return l
-      )
+factor :: Parser AST
+factor =
+  ( lparen |>
+    expression >>= \e ->
+    rparen |> return e -- No need to keep the parentheses
+  )
+  <|> identifier
+  <|> digit
 
-factor :: Bool -> Parser AST
-factor t = case t of
-  True -> ( unaryMinus >>= \op ->
-                (factor False) >>= \l -> return (AUnaryMinus op l)
-            ) <|> factor False
-  False -> 
-      ( lparen |>
-        (expression True) >>= \e ->
-        rparen |> return e -- No need to keep the parentheses
-      )
-      <|> identifier
-      <|> number
-
-number :: Parser AST
-number      = map (ANum) (findNumber)
+digit :: Parser AST
+digit      = map (ANum   . T.digit) (sat T.isDigit elem)
 
 identifier :: Parser AST
-identifier = map (AIdent) (findName)
+identifier = map (AIdent . T.alpha) (sat T.isAlpha elem)
 
---I had to change Char to String so we will support "++" as an operator without much pain
-
-lparen :: Parser String
+lparen :: Parser Char
 lparen = char '('
 
-rparen :: Parser String
+rparen :: Parser Char
 rparen = char ')'
 
-lsparen :: Parser String
-lsparen = char '['
-
-rsparen :: Parser String
-rsparen = char ']'
-
-assignment :: Parser String
+assignment :: Parser Char
 assignment = char '='
 
 plusMinus :: Parser T.Operator
@@ -176,51 +74,22 @@ plusMinus = map T.operator (char '+' <|> char '-')
 divMult :: Parser T.Operator
 divMult   = map T.operator (char '/' <|> char '*')
 
-pw :: Parser T.Operator
-pw   = map T.operator (char '^')
-
-unaryMinus :: Parser T.Operator
-unaryMinus   = map T.operator (char '-')
-
-breakOp :: Parser T.Operator
-breakOp   = map T.operator (char ';')
-
-comma :: Parser T.Operator
-comma   = map T.operator (char ',')
-
-concatOp :: Parser T.Operator
-concatOp   = map T.operator (twochars "++")
 
 
---make it as a separated function so we could normally write [ ++ AST ++ ] and a ++ ',' ++ b
-coolTree :: Int -> (String -> String)
-coolTree n = if n > 0 then \s -> concat (replicate (n - 1) "| ") ++ "|_" ++ s else id
 
 instance Show AST where
   show tree = "\n" ++ show' 0 tree
     where
       show' n t =
-        case t of 
-            --So there will be no meaningless string before the first element in list
-            AComma l r -> show' (n) l ++ "\n" ++ (coolTree n ",") ++ "\n" ++ show' (n) r
-            _ ->
-                (coolTree n)
-                (case t of
-                          ASum  op l r -> showOp op : "\n" ++ show' (ident n) l ++ "\n" ++ show' (ident n) r
-                          AProd op l r -> showOp op : "\n" ++ show' (ident n) l ++ "\n" ++ show' (ident n) r
-                          AAssign  v e -> (show v) ++ " =\n" ++ show' (ident n) e
-                          ANum   i     -> show i
-                          AIdent i     -> show i
-                          APow op l r  -> showOp op : "\n" ++ show' (ident n) l ++ "\n" ++ show' (ident n) r
-                          AUnaryMinus op t -> showOp op : "\n" ++ show' (ident n) t
-                          ABreak l r -> (show' 0 l) ++ "\n\n" ++ (show' 0 r)
-                          AConcat l r -> "++" ++ "\n" ++ show' (ident n) l ++ "\n" ++ show' (ident n) r
-                          AEmptyList -> "[" ++ "\n" ++ (coolTree n "]") 
-                          AList l -> "[" ++ "\n" ++ show' (ident n) l ++ "\n" ++ (coolTree n "]")
-                          )
+        (if n > 0 then \s -> concat (replicate (n - 1) "| ") ++ "|_" ++ s else id)
+        (case t of
+                  ASum  op l r -> showOp op : "\n" ++ show' (ident n) l ++ "\n" ++ show' (ident n) r
+                  AProd op l r -> showOp op : "\n" ++ show' (ident n) l ++ "\n" ++ show' (ident n) r
+                  AAssign  v e -> v : " =\n" ++ show' (ident n) e
+                  ANum   i     -> show i
+                  AIdent i     -> show i)
       ident = (+1)
       showOp T.Plus  = '+'
       showOp T.Minus = '-'
       showOp T.Mult  = '*'
-      showOp T.Pow   = '^'
       showOp T.Div   = '/'
