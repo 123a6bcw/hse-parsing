@@ -1,6 +1,3 @@
-# Ветка с домашним заданием --- HW3  
-# Можете смотреть Пулл Реквест
-
 # hse-parsing
 A simple recursive descent parser. Written for the formal languages course in HSE. The language is described with the following grammar:
 

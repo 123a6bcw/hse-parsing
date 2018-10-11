@@ -1,30 +1,10 @@
 module Tokenizer where
 
-data Token = TDigit Integer
-           | TIdent Char
-           | TOp Operator
-           | TLParen
-           | TRParen
-           | TAssign
-           | TEof
-           deriving (Show, Eq)
-
 data Operator = Plus
               | Minus
               | Mult
               | Div
               deriving (Show, Eq)
-
-tokenize :: String -> [Token]
-tokenize [] = [TEof]
-tokenize (c : cs) | isOperator c   = TOp (operator c) : tokenize cs
-                  | isDigit c      = TDigit (digit c) : tokenize cs
-                  | isAlpha c      = TIdent (alpha c) : tokenize cs
-                  | c == '('       = TLParen : tokenize cs
-                  | c == ')'       = TRParen : tokenize cs
-                  | c == '='       = TAssign : tokenize cs
-                  | isWhiteSpace c = tokenize cs
-                  | otherwise = error ("Lexical error: unacceptable character " ++ [c])
 
 isOperator :: Char -> Bool
 isOperator x = x `elem` "+-*/"
