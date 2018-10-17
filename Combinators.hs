@@ -31,6 +31,22 @@ p <!|> q = \inp ->
     Error _ -> q inp
     result  -> Error "h"
 
+infixl 4 <!|!>
+(<!|!>) :: Parser a -> Parser a -> Parser a
+p <!|!> q = \inp ->
+  case p inp of
+    Error _ -> q inp
+    Success (r, inp') | not (null inp') -> q inp' 
+    result  -> result  
+    
+infixl 4 <!|?>
+(<!|?>) :: Parser a -> Parser a -> Parser a
+p <!|?> q = \inp ->
+  case p inp of
+    Error s -> q s
+    Success (r, inp') | not (null inp') -> q inp' 
+    result -> result   
+
 deleteWhiteSpaces :: String -> String
 deleteWhiteSpaces "" = ""
 deleteWhiteSpaces xl@(x : xs) | isWhiteSpace x = deleteWhiteSpaces xs
@@ -53,6 +69,10 @@ p |> q = p >>= const q
 -- Succeedes without consuming any input, returning a value
 return :: a -> Parser a
 return r inp = Success (r, inp)
+
+-- Always give an error
+zero' :: Parser a
+zero' inp = Error ("\"" ++ inp ++ "\"")
 
 -- Always fails
 zero :: String -> Parser a
@@ -107,7 +127,7 @@ sat :: (a -> Bool) -> Parser a -> Parser a
 sat pred parser inp =
   case parser inp of
     Success (r, inp') | pred r ->  Success (r, inp')
-    Success _ -> Error ("Predicate is not satisfied" ++ inp)
+    Success _ -> Error ("Predicate is not satisfied " ++ inp)
     Error err -> Error err
 
 -- Applies the function to the result of the parser
@@ -116,3 +136,10 @@ map f parser inp =
   case parser inp of
     Success (r, inp') -> Success (f r, inp')
     Error err -> Error err
+    
+-- discard the unparsed suffix 
+discard :: Parser a -> String -> Result a
+discard parser inp =
+      case parser inp of
+        Success (r, inp') -> Success r
+        Error err -> Error err

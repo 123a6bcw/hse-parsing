@@ -23,12 +23,7 @@ parse :: String -> Maybe (Result AST)
 parse input =
   case input of
     [] -> Nothing
-    _ -> case expressionWithBreak input of
-           Success (tree, ts') ->
-             if null ts'
-             then Just (Success tree)
-             else Just (Error ("Syntax error on: " ++ show ts')) -- Only a prefix of the input is parsed
-           Error err -> Just (Error err) -- Legitimate syntax error
+    _  -> Just (discard expressionWithBreak input)
 
 {-
 I realised ; as an operator with the lowest priority. 
@@ -41,7 +36,8 @@ expressionWithBreak =
         breakOp >>= \op ->
         (expressionWithBreak) >>= \r -> return (ABreak l r)
     ) 
-    <|> severalListsOrSingleExpression
+    <!|!> severalListsOrSingleExpression
+    <!|?> zero'
 
 {-
 ++ - operator with the higher proirity
