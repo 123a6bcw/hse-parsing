@@ -21,6 +21,9 @@ p <|> q = \inp ->
     Error _ -> q inp
     result  -> result
 
+
+-- Choice combinator. But if the first Parser returns Success, combinator return Error. That way we can return Error if expression satisfy some wrong pattern. 
+-- Reason for that is because we have identificators and we can't determine whether it's an expression identificator or list identificator.
 infixl 5 <!|>
 (<!|>) :: Parser a -> Parser a -> Parser a
 p <!|> q = \inp ->

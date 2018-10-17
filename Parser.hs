@@ -129,7 +129,10 @@ expression t =
         breakOp >>= \e -> return (AEmptyList)
     )    
     ) 
-    <!|>
+    <!|> {- If after identifier there is an assigment to something that is not expression, ++ or ; then this identifier is not expression identifier, but list identifier
+            therefore we should return Error. The left part of operator <!|> does that chechking. If it return Success, <!|> return Error (due to definition of <!|>), otherwise this is
+            expression identifier and it return the second part.
+          -}
     (
     ( (highTerm t)       >>= \l  -> -- Here the identifier is parsed twice :(. Whatever does it mean.
             plusMinus  >>= \op ->
