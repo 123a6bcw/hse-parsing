@@ -14,14 +14,19 @@ data Result r = Success r
 -- The result of parsing is some payload r and the suffix which wasn't parsed
 type Parser r = Input -> Result (r, Input)
 
--- Choice combinator: checks if the input can be parsed with either the first, or the second parser
--- Left biased: make sure, that the first parser consumes more input
 infixl 6 <|>
 (<|>) :: Parser a -> Parser a -> Parser a
 p <|> q = \inp ->
   case p inp of
     Error _ -> q inp
     result  -> result
+
+infixl 5 <!|>
+(<!|>) :: Parser a -> Parser a -> Parser a
+p <!|> q = \inp ->
+  case p inp of
+    Error _ -> q inp
+    result  -> Error "h"
 
 deleteWhiteSpaces :: String -> String
 deleteWhiteSpaces "" = ""
@@ -33,7 +38,7 @@ deleteWhiteSpaces xl@(x : xs) | isWhiteSpace x = deleteWhiteSpaces xs
 infixl 7 >>=
 (>>=) :: Parser a -> (a -> Parser b ) -> Parser b
 p >>= q = \inp ->
-  case p inp of
+  case p (deleteWhiteSpaces inp) of
     Success (r, inp') -> q r (deleteWhiteSpaces inp')
     Error err -> Error err
 
@@ -71,7 +76,7 @@ chopName xl@(x : xs) | isAlpha x = let (name, tail) = chopName xs
 -- chops an integer from the begining and creates corresponding Parser 
 findNumber :: Parser Integer
 findNumber [] = Error "Empty string is not a number"
-findNumber (x : xs) | not $ isDigit x = Error "This isn't a number"
+findNumber s@(x : xs) | not $ isDigit x = Error ("First letter isn't a digit " ++ s)
 findNumber s = Success $ chopInt 0 s
 
 --same for identificator
@@ -99,7 +104,7 @@ sat :: (a -> Bool) -> Parser a -> Parser a
 sat pred parser inp =
   case parser inp of
     Success (r, inp') | pred r ->  Success (r, inp')
-    Success _ -> Error "Predicate is not satisfied"
+    Success _ -> Error ("Predicate is not satisfied" ++ inp)
     Error err -> Error err
 
 -- Applies the function to the result of the parser

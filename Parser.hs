@@ -37,16 +37,22 @@ expression with break - either severalLists or several severalLists separated by
 expressionWithBreak :: Parser AST
 expressionWithBreak =
     (
-        (severalLists) >>= \l ->
+        (severalListsOrSingleExpression) >>= \l ->
         breakOp >>= \op ->
         (expressionWithBreak) >>= \r -> return (ABreak l r)
     ) 
-    <|> severalLists
+    <|> severalListsOrSingleExpression
 
 {-
 ++ - operator with the higher proirity
 severalLists --- either a line of assigments to severalLists, concat of several listAround, just listAround or just an expression
 -}
+
+severalListsOrSingleExpression :: Parser AST
+severalListsOrSingleExpression = 
+  (expression True)
+  <|> severalLists
+  
 
 severalLists :: Parser AST
 severalLists =
@@ -59,7 +65,6 @@ severalLists =
          severalLists >>= \r -> return (AConcat l r)
   )
   <|> (listAround >>= \t -> return t )
-  <|> (expression True)
 
 {-
 Either Empty List (special case in my realisation), identifier or listExpression inside square brackets (that is impotant, because it's the thing that guarantee we won't go into 
@@ -84,10 +89,10 @@ Either severalLists (no endless recursion since we chopped square brackets) or s
 
 listExpression :: Parser AST
 listExpression = 
-    ( severalLists >>= \l ->
+    ( severalListsOrSingleExpression >>= \l ->
          comma >>= \c ->
            listExpression >>= \r -> return (AComma l r)
-    ) <|> (severalLists)
+    ) <|> (severalListsOrSingleExpression)
     
 {-
   At some point, when we will run out of squareBrackest, severalLists will be just (Expression True), so here goes expression
@@ -110,11 +115,29 @@ expression t =
     (expression t) >>= \e -> return (AAssign i e)
     )
     <|>
+    (
+    (
+    ( identifier >>= \(AIdent i) ->
+        assignment >>= \e -> return (AEmptyList)
+    )
+    <|>
+    ( identifier >>= \(AIdent i) ->
+        concatOp >>= \e -> return (AEmptyList)
+    ) 
+    <|>
+    ( identifier >>= \(AIdent i) ->
+        breakOp >>= \e -> return (AEmptyList)
+    )    
+    ) 
+    <!|>
+    (
     ( (highTerm t)       >>= \l  -> -- Here the identifier is parsed twice :(. Whatever does it mean.
             plusMinus  >>= \op ->
             (expression False) >>= \r  -> return (ASum op l r)
     )
     <|> highTerm t
+    )
+    )
 
 highTerm :: Bool -> Parser AST
 highTerm t =
