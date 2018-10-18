@@ -45,7 +45,6 @@ main = do
   runParser "a = b = [1,  2, 3 ] ++ [] ++ a"
   runParser "[ [abc = 5], [], [5, 6, [3^(-2)    ]] ]"
   putStrLn "\nдальше идут много ошибок\n"
-  runParser " [1] ++ 1"
   runParser "a = [b] = c"
   runParser "[-5--5]"
   runParser "5+*2"
@@ -54,3 +53,4 @@ main = do
   runParser "@"
   runParser "[ [abc = 5], [], [5, 6, [3^-2]] ]"
   runParser "5+a;7"
+  runParser "[1] ++ 1"

@@ -119,11 +119,7 @@ expression t =
     <|>
     ( identifier >>= \(AIdent i) ->
         concatOp >>= \e -> return (AEmptyList)
-    ) 
-    <|>
-    ( identifier >>= \(AIdent i) ->
-        breakOp >>= \e -> return (AEmptyList)
-    )    
+    )
     ) 
     <!|> {- If after identifier there is an assigment to something that is not expression, ++ or ; then this identifier is not expression identifier, but list identifier
             therefore we should return Error. The left part of operator <!|> does that chechking. If it return Success, <!|> return Error (due to definition of <!|>), otherwise this is
