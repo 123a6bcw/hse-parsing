@@ -53,3 +53,4 @@ main = do
   runParser "[-1^-2]"
   runParser "@"
   runParser "[ [abc = 5], [], [5, 6, [3^-2]] ]"
+  runParser "5+a;7"
